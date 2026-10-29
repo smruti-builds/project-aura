@@ -1,0 +1,6 @@
+{
+  "name": "AURA: Wearable Physiology & Stress Simulator",
+  "description": "Interactive clinical laboratory simulating wearable sensor streams (HR, HRV, EDA, Respiration, Motion) to evaluate classic 4-stage pipeline failures vs a 3-dimensional parallel stress detection model.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
