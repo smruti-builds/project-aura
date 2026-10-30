@@ -212,19 +212,22 @@ export const DigitalTwinEyeView: React.FC<DigitalTwinEyeViewProps> = ({
             {/* Card 1: Heart Rate */}
             <div className="bg-[#0D121F] border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                <span className="font-semibold text-slate-300 flex items-center gap-1.5" title="Heart Rate: Number of cardiac contractions per minute. Updates on a calm ~1s wearable window.">
                   <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500/20" />
                   Heart Rate
                 </span>
-                <span className="font-mono text-[11px]">
-                  Δ {sample.heartRate > 70 ? `+${(sample.heartRate - 70).toFixed(0)}` : (sample.heartRate - 70).toFixed(0)} bpm
+                <span className="font-mono text-[11px] text-slate-400">
+                  Beats / Min
                 </span>
               </div>
               <div className="my-2 flex items-baseline gap-2">
                 <span className="text-3xl font-bold font-mono text-slate-100 tabular-nums">
-                  {sample.heartRate.toFixed(0)}
+                  {sample.displayHeartRate}
                 </span>
                 <span className="text-xs font-mono uppercase text-slate-500">BPM</span>
+                <span className="text-[11px] text-slate-500 ml-auto font-mono">
+                  Δ {sample.displayHeartRate > 70 ? `+${sample.displayHeartRate - 70}` : sample.displayHeartRate - 70}
+                </span>
               </div>
               {/* Mini Sparkline */}
               <div className="h-10 w-full overflow-hidden">
@@ -238,9 +241,9 @@ export const DigitalTwinEyeView: React.FC<DigitalTwinEyeViewProps> = ({
                 </svg>
               </div>
               <div className="text-[11px] text-slate-500 flex justify-between pt-1 border-t border-slate-800/80">
-                <span>Baseline: 68-72 bpm</span>
-                <span className={sample.heartRate > 110 ? 'text-amber-400' : 'text-slate-400'}>
-                  {sample.heartRate > 120 ? 'Tachycardia' : sample.heartRate < 55 ? 'Bradycardia / Freeze' : 'Nominal'}
+                <span>Resting baseline: 68-72</span>
+                <span className={sample.displayHeartRate > 110 ? 'text-amber-400 font-medium' : sample.displayHeartRate < 55 ? 'text-indigo-400 font-medium' : 'text-slate-400'}>
+                  {sample.displayHeartRate > 120 ? 'Tachycardia (High)' : sample.displayHeartRate < 55 ? 'Bradycardia (Freeze)' : 'Nominal'}
                 </span>
               </div>
             </div>
@@ -248,35 +251,40 @@ export const DigitalTwinEyeView: React.FC<DigitalTwinEyeViewProps> = ({
             {/* Card 2: HRV RMSSD */}
             <div className="bg-[#0D121F] border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                <span className="font-semibold text-slate-300 flex items-center gap-1.5" title="HRV RMSSD: Heart Rate Variability (Root Mean Square of Successive Differences). High = flexible calm nervous system; Low = stressed or exhausted system.">
                   <Activity className="w-3.5 h-3.5 text-cyan-400" />
-                  HRV RMSSD (Vagal Tone)
+                  HRV RMSSD (Vagal Brake)
                 </span>
-                <span className="font-mono text-[11px]">Parasympathetic</span>
+                <span className="font-mono text-[11px] text-cyan-400" title="Vagus nerve parasympathetic brake">
+                  Autonomic Tone
+                </span>
               </div>
               <div className="my-2 flex items-baseline gap-2">
                 <span className="text-3xl font-bold font-mono text-slate-100 tabular-nums">
-                  {sample.hrvRmssd.toFixed(1)}
+                  {sample.displayHrvRmssd.toFixed(1)}
                 </span>
                 <span className="text-xs font-mono uppercase text-slate-500">MS</span>
+                <span className="text-[10px] text-slate-500 ml-auto font-mono">
+                  Beat-to-beat variability
+                </span>
               </div>
               {/* Visual Meter Bar */}
               <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800">
                 <div
-                  className={`h-full transition-all duration-300 ${
-                    sample.hrvRmssd < 20
+                  className={`h-full transition-all duration-500 ${
+                    sample.displayHrvRmssd < 20
                       ? 'bg-rose-500'
-                      : sample.hrvRmssd < 35
+                      : sample.displayHrvRmssd < 35
                       ? 'bg-amber-500'
                       : 'bg-emerald-500'
                   }`}
-                  style={{ width: `${Math.min(100, (sample.hrvRmssd / 70) * 100)}%` }}
+                  style={{ width: `${Math.min(100, (sample.displayHrvRmssd / 70) * 100)}%` }}
                 />
               </div>
               <div className="text-[11px] text-slate-500 flex justify-between pt-2">
                 <span>Healthy reserve: &gt;45 ms</span>
-                <span className={sample.hrvRmssd < 20 ? 'text-rose-400 font-semibold' : 'text-slate-400'}>
-                  {sample.hrvRmssd < 18 ? 'Vagal Suppression' : sample.hrvRmssd > 50 ? 'Strong Vagal Brake' : 'Moderate'}
+                <span className={sample.displayHrvRmssd < 20 ? 'text-rose-400 font-semibold' : 'text-slate-400'}>
+                  {sample.displayHrvRmssd < 18 ? 'Vagal Suppression (Stressed)' : sample.displayHrvRmssd > 50 ? 'Strong Vagal Brake (Calm)' : 'Moderate'}
                 </span>
               </div>
             </div>
@@ -284,40 +292,45 @@ export const DigitalTwinEyeView: React.FC<DigitalTwinEyeViewProps> = ({
             {/* Card 3: EDA (Electrodermal Activity / GSR) */}
             <div className="bg-[#0D121F] border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                <span className="font-semibold text-slate-300 flex items-center gap-1.5" title="EDA: Electrodermal Activity (Skin Conductance). Measures microscopic sweat produced by sympathetic nervous activation.">
                   <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  Electrodermal Activity (EDA)
+                  EDA Total (Skin Sweat)
                 </span>
-                <span className="font-mono text-[11px]">Sympathetic Sweat</span>
+                <span className="font-mono text-[11px] text-amber-400" title="Sympathetic Nervous Sweat Glands">
+                  Micro-Siemens
+                </span>
               </div>
               <div className="my-2 flex items-baseline gap-2">
                 <span className="text-3xl font-bold font-mono text-slate-100 tabular-nums">
-                  {sample.edaTotal.toFixed(2)}
+                  {sample.displayEda.toFixed(2)}
                 </span>
                 <span className="text-xs font-mono uppercase text-slate-500">µS</span>
+                <span className="text-[10px] text-slate-500 ml-auto font-mono">
+                  Skin conductance
+                </span>
               </div>
               {/* Tonic vs Phasic Breakdown */}
               <div className="space-y-1 text-[11px] font-mono">
                 <div className="flex justify-between text-slate-400">
-                  <span>Tonic SCL (Base): {sample.edaTonic.toFixed(2)} µS</span>
-                  <span>Phasic SCR (Burst): {sample.edaPhasic.toFixed(2)} µS</span>
+                  <span title="Tonic SCL: Baseline skin conductance level">Tonic (Base): {sample.edaTonic.toFixed(1)} µS</span>
+                  <span title="Phasic SCR: Spontaneous emotional burst or wave">Phasic (Burst): {sample.edaPhasic.toFixed(1)} µS</span>
                 </div>
                 <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden flex">
                   <div
-                    className="bg-amber-600 transition-all duration-200"
+                    className="bg-amber-600 transition-all duration-500"
                     style={{ width: `${Math.min(100, (sample.edaTonic / 15) * 100)}%` }}
                   />
                   <div
-                    className="bg-amber-400 transition-all duration-200"
+                    className="bg-amber-400 transition-all duration-300"
                     style={{ width: `${Math.min(100, (sample.edaPhasic / 8) * 100)}%` }}
                   />
                 </div>
               </div>
               <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-800/80">
-                {sample.edaTotal > 9
-                  ? 'High arousal (Stress or Heat/Exertion)'
-                  : sample.edaTotal < 2
-                  ? 'Blunted sweat conductance (Freeze or Cold)'
+                {sample.displayEda > 9
+                  ? 'Elevated sweat conductance (Arousal / Exertion)'
+                  : sample.displayEda < 2
+                  ? 'Depressed sweat conductance (Freeze or Cold)'
                   : 'Normal tonic tone'}
               </div>
             </div>
@@ -325,17 +338,22 @@ export const DigitalTwinEyeView: React.FC<DigitalTwinEyeViewProps> = ({
             {/* Card 4: Respiration Rate & Wave */}
             <div className="bg-[#0D121F] border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                <span className="font-semibold text-slate-300 flex items-center gap-1.5" title="Respiration Rate: Inhalation/exhalation cycles per minute from thoracic expansion.">
                   <Wind className="w-3.5 h-3.5 text-sky-400" />
                   Respiration Rate
                 </span>
-                <span className="font-mono text-[11px]">Thoracic Breathing</span>
+                <span className="font-mono text-[11px] text-sky-400">
+                  Breathing Cadence
+                </span>
               </div>
               <div className="my-2 flex items-baseline gap-2">
                 <span className="text-3xl font-bold font-mono text-slate-100 tabular-nums">
-                  {sample.respirationRate.toFixed(0)}
+                  {sample.displayRespiration}
                 </span>
                 <span className="text-xs font-mono uppercase text-slate-500">BrPM</span>
+                <span className="text-[10px] text-slate-500 ml-auto font-mono">
+                  Breaths / min
+                </span>
               </div>
               {/* Breathing Waveform */}
               <div className="h-10 w-full overflow-hidden">
@@ -350,10 +368,27 @@ export const DigitalTwinEyeView: React.FC<DigitalTwinEyeViewProps> = ({
               </div>
               <div className="text-[11px] text-slate-500 flex justify-between pt-1 border-t border-slate-800/80">
                 <span>Resting: 12-16 BrPM</span>
-                <span className={sample.respirationRate > 24 ? 'text-amber-400' : 'text-slate-400'}>
-                  {sample.respirationRate > 24 ? 'Tachypnea / Hyperventilation' : sample.respirationRate < 10 ? 'Hypoventilation / Freeze' : 'Eupnea (Normal)'}
+                <span className={sample.displayRespiration > 24 ? 'text-amber-400 font-medium' : sample.displayRespiration < 10 ? 'text-indigo-400 font-medium' : 'text-slate-400'}>
+                  {sample.displayRespiration > 24 ? 'Tachypnea (Rapid)' : sample.displayRespiration < 10 ? 'Hypoventilation (Freeze)' : 'Eupnea (Normal)'}
                 </span>
               </div>
+            </div>
+          </div>
+
+          {/* Active Multi-Signal Pattern Recognition Bar (How we form patterns from data) */}
+          <div className="bg-slate-900/90 border border-cyan-500/30 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-start sm:items-center gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shrink-0 mt-1 sm:mt-0" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase text-slate-400">Active Multi-Signal Pattern:</span>
+                  <span className="text-xs font-bold text-cyan-300">{sample.activePatternName}</span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-0.5 leading-relaxed">{sample.activePatternExplanation}</p>
+              </div>
+            </div>
+            <div className="text-[10px] font-mono text-slate-400 bg-slate-950 px-2.5 py-1 rounded border border-slate-800 shrink-0 self-start sm:self-auto">
+              Multi-Sensor Fusion Active
             </div>
           </div>
 
@@ -366,21 +401,24 @@ export const DigitalTwinEyeView: React.FC<DigitalTwinEyeViewProps> = ({
             <div className="flex items-center gap-2.5 shrink-0">
               <button
                 onClick={onInjectStressor}
+                title="Simulates an acute psychological shock or alarming event without physical motion"
                 className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25 transition-colors cursor-pointer"
               >
                 + Inject Stress Spike
               </button>
               <button
                 onClick={onInjectRelaxation}
+                title="Simulates deep diaphragmatic breathing (4-7-8) activating the parasympathetic vagal brake"
                 className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/25 transition-colors cursor-pointer"
               >
                 + Deep Breath Recovery
               </button>
               <button
                 onClick={onOpenCheckin}
+                title="Opens the wearable wristband Ecological Momentary Assessment (EMA) prompt"
                 className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 transition-colors cursor-pointer"
               >
-                Prompt EMA Check-In
+                Prompt Wristband Check-In
               </button>
             </div>
           </div>

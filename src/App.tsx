@@ -148,13 +148,15 @@ export default function App() {
         onOpenDeployModal={() => setIsDeployModalOpen(true)}
       />
 
-      {/* Mode Selector & Context Ribbon */}
-      <ModeSelectorBar
-        currentModeId={currentModeId}
-        onSelectMode={handleSelectMode}
-        context={context}
-        onUpdateContext={handleUpdateContext}
-      />
+      {/* Mode Selector & Context Ribbon (Only shown inside simulator product views) */}
+      {activeTab !== 'whitepaper' && (
+        <ModeSelectorBar
+          currentModeId={currentModeId}
+          onSelectMode={handleSelectMode}
+          context={context}
+          onUpdateContext={handleUpdateContext}
+        />
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-6 py-6 space-y-6">
@@ -183,6 +185,20 @@ export default function App() {
               onToggleLooseSensor={handleToggleLooseSensor}
               isSensorLoose={context.isSensorLoose}
             />
+
+            {/* Transition banner to Clinical Framework Page */}
+            <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div>
+                <span className="font-semibold text-slate-200">Next: Clinical Framework & Medical Glossary</span>
+                <p className="text-slate-400 mt-0.5">Explore the deep clinical rationale, full forms (HRV RMSSD, SAM axis, EDA), and pattern formation methodology.</p>
+              </div>
+              <button
+                onClick={() => setActiveTab('whitepaper')}
+                className="px-4 py-2 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 rounded-lg font-semibold transition-colors whitespace-nowrap cursor-pointer shrink-0"
+              >
+                Read Clinical Framework (Next Page) →
+              </button>
+            </div>
           </div>
         )}
 
@@ -220,7 +236,7 @@ export default function App() {
         )}
 
         {activeTab === 'whitepaper' && (
-          <ClinicalWhitepaperView />
+          <ClinicalWhitepaperView onBackToSimulator={() => setActiveTab('twin_eye')} />
         )}
       </main>
 

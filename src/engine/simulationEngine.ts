@@ -25,6 +25,15 @@ export class WearableSimulationEngine {
   private currentActualMotion: number;
   private currentActualSqi: number;
 
+  // Realistic Wearable Display Readout Smoother (simulates 1-2 second physiological averaging)
+  private displayHr: number;
+  private displayHrv: number;
+  private displayEda: number;
+  private displayResp: number;
+  private displayTemp: number;
+  private displayMotion: number;
+  private lastDisplayUpdateSec: number = -999;
+
   constructor(initialPreset: SimulationPreset) {
     this.currentPreset = initialPreset;
     this.context = {
@@ -47,6 +56,14 @@ export class WearableSimulationEngine {
     this.currentActualTemp = initialPreset.skinTemp;
     this.currentActualMotion = initialPreset.motion;
     this.currentActualSqi = initialPreset.sqi;
+
+    // Display fields start at preset values
+    this.displayHr = initialPreset.targetHr;
+    this.displayHrv = initialPreset.hrvRmssd;
+    this.displayEda = initialPreset.edaTonic + initialPreset.edaPhasicPeak;
+    this.displayResp = initialPreset.respirationRate;
+    this.displayTemp = initialPreset.skinTemp;
+    this.displayMotion = initialPreset.motion;
 
     if (initialPreset.id === 'allostatic_overload' || initialPreset.id === 'resilient_triggers') {
       this.triggerCountInWindow = 2; // pre-seed past triggers
@@ -198,6 +215,47 @@ export class WearableSimulationEngine {
       ppgValue = Math.random() * 0.9;
     }
 
+    // Realistic Wearable Display Readout Smoother:
+    // Consumer wearables and medical monitors do not jitter raw numbers 10x/sec.
+    // They calculate rolling averages and update the displayed number calmly every ~1-1.2 seconds.
+    if (this.timeSec - this.lastDisplayUpdateSec >= 1.2 || this.lastDisplayUpdateSec < 0) {
+      this.lastDisplayUpdateSec = this.timeSec;
+      // Integer rounding for HR/Resp, 1 decimal for HRV, 2 decimals for EDA
+      this.displayHr = Math.round(this.currentActualHr);
+      this.displayHrv = Math.round(this.currentActualHrv * 10) / 10;
+      this.displayEda = Math.round((this.currentActualEdaTonic + this.currentActualEdaPhasic) * 100) / 100;
+      this.displayResp = Math.round(this.currentActualResp);
+      this.displayTemp = Math.round(this.currentActualTemp * 10) / 10;
+      this.displayMotion = Math.round(this.currentActualMotion * 100) / 100;
+    }
+
+    // Pattern identification based on multi-sensor pattern synthesis
+    let activePatternName = 'Quiescent Baseline (Autonomic Balance)';
+    let activePatternExplanation = 'Normal resting physiology. Heart rate and vagal tone (HRV) reflect a healthy parasympathetic vagal brake with natural respiratory sinus arrhythmia (RSA).';
+
+    if (this.currentActualSqi < 50) {
+      activePatternName = 'Sensor Decoupled (Optical Noise Artifact)';
+      activePatternExplanation = 'Wristband loose or motion artifact. Signal Quality Index (SQI) below reliability threshold. Clinical algorithms gate output to prevent false alarms.';
+    } else if (this.currentActualMotion > 0.8) {
+      activePatternName = 'Metabolic Exertion (Physical Activity)';
+      activePatternExplanation = 'Sympathetic arousal driven by physical locomotion (accelerometer > 0.8g). Heart rate and sweat elevated by muscle demand, NOT psychological distress.';
+    } else if (instantHr < 60 && this.currentActualMotion < 0.15 && this.context.subjectReportedDistress >= 6) {
+      activePatternName = 'Dorsal Vagal Freeze (Hypo-Arousal Shutdown)';
+      activePatternExplanation = 'The Missing Dimension: Polyvagal freeze state. Immobility + paradoxical bradycardia + severe subjective distress. Naive systems mistake this for meditation!';
+    } else if (this.activeStressorMagnitude > 0 || (instantHr > 105 && this.currentActualMotion < 0.2)) {
+      activePatternName = 'Acute Non-Motion Hyperarousal (SAM Axis)';
+      activePatternExplanation = 'Fight-or-flight adrenaline surge in a stationary body. Tachycardia + spontaneous phasic sweat bursts + shallow thoracic breathing.';
+    } else if (this.currentPreset.id === 'chronic_exhaustion') {
+      activePatternName = 'Allostatic Reserve Depletion (Chronic Burnout)';
+      activePatternExplanation = 'Baseline drift: Resting HR baseline drifted up +14 BPM above unburdened norm, while HRV parasympathetic reserves are depleted (<25 ms).';
+    } else if (this.currentPreset.id === 'resilient_triggers') {
+      activePatternName = 'Resilient Work Demand (Vagal Rebound)';
+      activePatternExplanation = 'Healthy resilience: Sympathetic arousal during demanding task followed immediately by rapid parasympathetic rebound (steep recovery slope).';
+    } else if (this.currentPreset.id === 'allostatic_overload') {
+      activePatternName = 'Allostatic Overload Cascade';
+      activePatternExplanation = 'Autonomic exhaustion: Successive triggers show progressively decaying recovery slopes; the vagal brake fails to restore baseline.';
+    }
+
     const sample: PhysiologicalSample = {
       timestamp: Math.round(this.timeSec * 10) / 10,
       heartRate: Math.round(instantHr * 10) / 10,
@@ -212,6 +270,16 @@ export class WearableSimulationEngine {
       ecgVoltage: Math.round(ecgVoltage * 100) / 100,
       ppgValue: Math.round(ppgValue * 100) / 100,
       respirationPhase: respCycle,
+
+      // Display readouts with realistic wearable lag & stability
+      displayHeartRate: this.displayHr,
+      displayHrvRmssd: this.displayHrv,
+      displayEda: this.displayEda,
+      displayRespiration: this.displayResp,
+      displaySkinTemp: this.displayTemp,
+      displayMotion: this.displayMotion,
+      activePatternName,
+      activePatternExplanation,
     };
 
     this.sampleHistory.push(sample);

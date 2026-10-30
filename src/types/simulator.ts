@@ -27,6 +27,16 @@ export interface PhysiologicalSample {
   ecgVoltage: number; // instantaneous microvolts for live ECG trace
   ppgValue: number; // photoplethysmogram pulse value 0 - 1
   respirationPhase: number; // instantaneous breathing wave -1 to 1
+
+  // Realistic Wearable Display Readouts (moving-average smoothed with realistic 1s lag)
+  displayHeartRate: number;
+  displayHrvRmssd: number;
+  displayEda: number;
+  displayRespiration: number;
+  displaySkinTemp: number;
+  displayMotion: number;
+  activePatternName: string;
+  activePatternExplanation: string;
 }
 
 export interface SimulationContext {
